@@ -30,7 +30,7 @@ elif [ "$1" = "clean" ]; then
 elif [ "$1" = "run" ]; then
     ./build clean
     ./build build
-    ./out/$MainFile
+    ./out/$MainFile $2
 
 else
     echo -e "usage:\n./build build\n./build clean\n./build run"

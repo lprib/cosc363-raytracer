@@ -29,8 +29,8 @@ typedef struct {
 
 scene_object_t default_scene_object();
 
-vec3_t get_lighting(scene_object_t *object, vec3_t light_pos, vec3_t view_vec, vec3_t hit, vec3_t object_color);
+vec3_t get_lighting(scene_object_t *object, vec3_t* light_pos, int num_lights, vec3_t view_vec, vec3_t hit, vec3_t object_color);
 
-scene_t new_scene(scene_object_t* objs, int len);
+scene_t new_scene(scene_object_t *objs, int len);
 
 #endif

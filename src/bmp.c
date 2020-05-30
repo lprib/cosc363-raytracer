@@ -43,7 +43,7 @@ texture_t new_texture(char *filename) {
     new_tex.channels = nbytes;
     new_tex.data = image_data;
 
-    printf("Image %s loaded successfully", filename);
+    printf("Image %s loaded successfully\n", filename);
 
     return new_tex;
 }

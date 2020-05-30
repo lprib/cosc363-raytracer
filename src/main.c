@@ -1,4 +1,5 @@
 #include <GL/freeglut.h>
+#include <stdio.h>
 
 #include "plane.h"
 #include "ray.h"
@@ -10,7 +11,7 @@ const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
 const float EDIST = 40.0;
 const int NUMDIV = 500;
-const int AA_FACTOR = 4;
+int AA_FACTOR = 2;
 const int MAX_STEPS = 5;
 float XMIN;
 float XMAX;
@@ -19,9 +20,13 @@ float YMAX;
 
 scene_t scene;
 
+#define NUM_LIGHTS 2
+vec3_t lights[] = {
+    {10, 40, -3},
+    {-50, 40, -3}};
+
 vec3_t trace(ray_t *ray, int step) {
     vec3_t bg_color = ZERO_VEC;
-    vec3_t light_pos = {10, 40, -3};
     vec3_t color = ZERO_VEC;
     scene_object_t *object;
 
@@ -30,18 +35,19 @@ vec3_t trace(ray_t *ray, int step) {
         return bg_color;
     object = &scene.objects[ray->index];
 
-    color = get_lighting(object, light_pos, negate(ray->dir), ray->hit, object->get_color(object, ray->hit));
+    color = get_lighting(object, lights, NUM_LIGHTS, negate(ray->dir), ray->hit, object->get_color(object, ray->hit));
 
-    // color = object->color;
-    vec3_t light_vec = subtract(light_pos, ray->hit);
+    for (int i = 0; i < NUM_LIGHTS; i++) {
+        vec3_t light_vec = subtract(lights[i], ray->hit);
 
-    ray_t shadow_ray = new_ray(ray->hit, light_vec);
-    closest_point(&shadow_ray, scene);
+        ray_t shadow_ray = new_ray(ray->hit, light_vec);
+        closest_point(&shadow_ray, scene);
 
-    if ((shadow_ray.index > -1) && (shadow_ray.distance < length(light_vec))) {
-        scene_object_t *shadow_hit = &scene.objects[shadow_ray.index];
-        double shadow_coef = shadow_hit->is_transparent ? shadow_hit->transparent_c : 0.2;
-        color = scale(color, shadow_coef);
+        if ((shadow_ray.index > -1) && (shadow_ray.distance < length(light_vec))) {
+            scene_object_t *shadow_hit = &scene.objects[shadow_ray.index];
+            double shadow_coef = shadow_hit->is_transparent ? shadow_hit->transparent_c : 0.2;
+            color = scale(color, shadow_coef);
+        }
     }
 
     if (object->is_transparent) {
@@ -169,10 +175,10 @@ void initialize() {
     ss[3].color = (vec3_t){1, 1, 0};
     ss[3].is_reflective = true;
     ss[3].is_transparent = true;
-    ss[3].transparent_c = 0.5;
+    ss[3].transparent_c = 1.0;
     ss[3].is_refractive = true;
-    ss[3].refract_c = 0.5;
-    ss[3].refractive_index = 0.99;
+    ss[3].refract_c = 1.0;
+    ss[3].refractive_index = 0.8;
     ss[3].reflect_c = 0.7;
 
     ss[4] = new_plane4(
@@ -191,9 +197,22 @@ int main(int argc, char **argv) {
     glutInitWindowSize(500, 500);
     glutInitWindowPosition(20, 20);
     glutCreateWindow("Raytracing");
-
     glutDisplayFunc(display);
     initialize();
+
+    if(argc > 1) {
+        int aa = atoi(argv[1]);
+        if(aa > 0) {
+            printf("Continuing with %dx anti-aliasing\n", aa);
+            AA_FACTOR = aa;
+        } else {
+            printf("invalid AA amount %s, continuing with 2x AA\n", argv[1]);
+            AA_FACTOR = 2;
+        }
+    } else {
+        printf("invalid AA amount, continuing with 2x AA\n");
+        AA_FACTOR = 2;
+    }
 
     glutMainLoop();
     return 0;

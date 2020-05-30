@@ -19,6 +19,7 @@ typedef struct scene_object_s {
     double (*intersect)(struct scene_object_s *this, vec3_t p0, vec3_t dir);
     vec3_t (*normal)(struct scene_object_s *this, vec3_t pos);
     void (*desctruct)(struct scene_object_s *this);
+    vec3_t (*get_color)(struct scene_object_s *this, vec3_t hit);
 } scene_object_t;
 
 typedef struct {

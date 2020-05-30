@@ -55,6 +55,10 @@ vec3_t sphere_normal(scene_object_t *this, vec3_t pos) {
 
 void sphere_desctruct(scene_object_t *this) { free(this->data); }
 
+vec3_t sphere_get_color(scene_object_t*this, vec3_t hit) {
+    return this->color;
+}
+
 scene_object_t new_sphere(vec3_t center, double radius) {
     sphere_data_t *data = (sphere_data_t *)malloc(sizeof(sphere_data_t));
     data->center = center;
@@ -65,6 +69,7 @@ scene_object_t new_sphere(vec3_t center, double radius) {
     n.intersect = &sphere_intersect;
     n.normal = &sphere_normal;
     n.desctruct = &sphere_desctruct;
+    n.get_color = &sphere_get_color;
 
     return n;
 }

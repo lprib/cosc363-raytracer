@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
+#include "bmp.h"
 
 typedef struct {
     vec3_t a;
@@ -11,6 +12,7 @@ typedef struct {
     vec3_t c;
     vec3_t d;
     int nverts;
+    texture_t tex;
 } plane_data_t;
 
 bool is_inside(scene_object_t *this, vec3_t q) {
@@ -71,7 +73,37 @@ double plane_intersect(scene_object_t *this, vec3_t p0, vec3_t dir) {
     }
 }
 
-void plane_desctruct(scene_object_t *this) { free(this->data); }
+void plane_desctruct(scene_object_t *this) {
+    plane_data_t *d = (plane_data_t *)this->data;
+    free_texture(&d->tex);
+    free(this->data);
+    }
+
+vec3_t plane_get_color(scene_object_t*this, vec3_t hit) {
+    plane_data_t *d = (plane_data_t *)this->data;
+
+    // return this->color;
+    int stripe_width = 5;
+    int iz = hit.z;
+    int k = iz%2;
+
+    vec3_t color = ZERO_VEC;
+    if(k==0) {
+        color = (vec3_t){0, 1, 0};
+    } else {
+        color = (vec3_t){1, 1, 0.5};
+    }
+
+    double x1 = -15, x2 = 5, z1 = -60, z2=-90;
+    double coord_s = (hit.x - x1)/(x2-x1);
+    double coord_t = (hit.z - z1)/(z2-z1);
+
+    if(coord_s > 0 && coord_s < 1 && coord_t > 0 && coord_t < 1) {
+        color = get_color_at(&d->tex, coord_s, coord_t);
+    }
+
+    return color;
+}
 
 scene_object_t new_plane_from_data(plane_data_t* data) {
     scene_object_t n = default_scene_object();
@@ -79,6 +111,9 @@ scene_object_t new_plane_from_data(plane_data_t* data) {
     n.intersect = &plane_intersect;
     n.normal = &plane_normal;
     n.desctruct = &plane_desctruct;
+    n.get_color = &plane_get_color;
+
+    data->tex = new_texture("Butterfly.bmp");
 
     return n;
 }

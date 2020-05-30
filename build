@@ -1,0 +1,37 @@
+#!/bin/bash
+# Author: Liam Pribis
+
+# abort on any error
+set -e
+MainFile="main"
+
+if [ "$1" = "build" ]; then
+    SourceDir="../src/" # relative to the out directory
+    CompilerFlags="-lGL -lGLU -lglut -lm"
+
+    mkdir -p out
+    cd out
+
+    # for each .c file in the src directory, compile it to an .o file
+    for File in ${SourceDir}*.c
+    do
+        gcc -c $File $CompilerFlags
+    done
+
+    # find each .o file excluding $MainFile.o (because it needs to come first in the arguments to gcc)
+    OFilesWithoutMain=$(find . -maxdepth 1 -type f -name "*.o" ! -name "$MainFile.o")
+
+    # link all .o files
+    gcc -o $MainFile $MainFile.o $OFilesWithoutMain $CompilerFlags
+
+elif [ "$1" = "clean" ]; then
+    rm -f ./out/*
+
+elif [ "$1" = "run" ]; then
+    ./build clean
+    ./build build
+    ./out/$MainFile
+
+else
+    echo -e "usage:\n./build build\n./build clean\n./build run"
+fi

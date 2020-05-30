@@ -4,11 +4,12 @@
 #include "sphere.h"
 #include "vec3.h"
 #include "ray.h"
+#include "plane.h"
 
 const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
 const float EDIST = 40.0;
-const int NUMDIV = 800;
+const int NUMDIV = 1600;
 const int MAX_STEPS = 5;
 float XMIN;
 float XMAX;
@@ -101,7 +102,8 @@ void initialize() {
 
     glClearColor(0, 0, 0, 1);
 
-    scene_object_t ss[4] = {0};
+    scene_object_t ss[5] = {0};
+
     ss[0] = new_sphere((vec3_t){-5.0, 0.0, -90.0}, 15.0);
     ss[0].color = (vec3_t) {0, 0, 1};
     // ss[0].shininess = 5.0;
@@ -123,6 +125,13 @@ void initialize() {
     ss[3].color = (vec3_t) {0, 1, 0};
     ss[3].is_reflective = true;
     ss[3].reflect_c = 0.8;
+
+    ss[4] = new_plane4(
+        (vec3_t){-20, -15, -40},
+        (vec3_t){20, -15, -40},
+        (vec3_t){20, -15, -200},
+        (vec3_t){-20, -15, -200}
+    );
 
 
     scene = new_scene(ss, sizeof(ss)/sizeof(scene_object_t));

@@ -34,4 +34,9 @@ double length(vec3_t n) {
     return sqrt(dot(n, n));
 }
 
-vec3_t cross(vec3_t a, vec3_t b){}
+vec3_t cross(vec3_t a, vec3_t b) {
+    return (vec3_t){
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x};
+}

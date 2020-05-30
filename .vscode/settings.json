@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.rustpeg": "rust",
+        "*.tcc": "c",
+        "fstream": "c"
+    }
+}

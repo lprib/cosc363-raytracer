@@ -6,6 +6,8 @@
 #include "scene_object.h"
 #include "sphere.h"
 #include "vec3.h"
+#include "cylinder.h"
+#include "cone.h"
 
 const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
@@ -25,6 +27,9 @@ vec3_t lights[] = {
     {10, 40, -3},
     {-50, 40, -3}};
 
+vec3_t fog_color = {0.0, 0.0, 0.0};
+double fog_intensity = 300.0;
+
 vec3_t trace(ray_t *ray, int step) {
     vec3_t bg_color = ZERO_VEC;
     vec3_t color = ZERO_VEC;
@@ -32,7 +37,7 @@ vec3_t trace(ray_t *ray, int step) {
 
     closest_point(ray, scene);
     if (ray->index == -1)
-        return bg_color;
+        return fog_color;
     object = &scene.objects[ray->index];
 
     color = get_lighting(object, lights, NUM_LIGHTS, negate(ray->dir), ray->hit, object->get_color(object, ray->hit));
@@ -63,7 +68,7 @@ vec3_t trace(ray_t *ray, int step) {
         vec3_t norm = object->normal(object, ray->hit);
         //maybe normalise incident
 
-        vec3_t refract_direction = refract(normalize(ray->dir), normalize(norm), 1 / object->refractive_index);
+        vec3_t refract_direction = refract(normalize(ray->dir), negate(normalize(norm)), 1 / object->refractive_index);
         ray_t refract_ray = new_ray(ray->hit, refract_direction);
         closest_point(&refract_ray, scene);
         vec3_t exiting_normal = object->normal(object, refract_ray.hit);
@@ -82,6 +87,13 @@ vec3_t trace(ray_t *ray, int step) {
         vec3_t reflected_color = trace(&reflected_ray, step + 1);
         color = add(color, scale(reflected_color, object->reflect_c));
     }
+
+    //fog
+    // if(step == 1) {
+        double fog_scale = ray->distance / fog_intensity;
+        if(fog_scale > 1.0) fog_scale = 1.0;
+        color = lerp(color, fog_color, fog_scale);
+    // }
 
     return color;
 }
@@ -153,11 +165,18 @@ void initialize() {
 
     scene_object_t ss[5] = {0};
 
-    ss[0] = new_sphere((vec3_t){-5.0, 0.0, -90.0}, 15.0);
+    // ss[0] = new_sphere((vec3_t){-5.0, 0.0, -90.0}, 15.0);
+    // ss[0].color = (vec3_t){0, 0, 1};
+    ss[0].shininess = 5.0;
+    ss[0] = new_cone((vec3_t){-5.0, -15.0, -90.0}, 10.0, 16.0);
+    // ss[0].is_reflective = true;
+    ss[0].is_transparent = true;
+    // ss[0].transparent_c = 1.0;
+    // ss[0].is_refractive = true;
+    ss[0].refract_c = 1.0;
+    ss[0].refractive_index = 0.8;
+    ss[0].reflect_c = 0.7;
     ss[0].color = (vec3_t){0, 0, 1};
-    // ss[0].shininess = 5.0;
-    ss[0].is_reflective = true;
-    ss[0].reflect_c = 0.8;
 
     ss[1] = new_sphere((vec3_t){10, 10, -60}, 3.0);
     ss[1].color = (vec3_t){0, 1, 1};
@@ -171,7 +190,7 @@ void initialize() {
     // ss[2].is_reflective = true;
     // ss[2].reflect_c = 0.8;
 
-    ss[3] = new_sphere((vec3_t){5.0, -10.0, -60.0}, 5.0);
+    ss[3] = new_sphere((vec3_t){5.0, -10.0, -160.0}, 5.0);
     ss[3].color = (vec3_t){1, 1, 0};
     ss[3].is_reflective = true;
     ss[3].is_transparent = true;

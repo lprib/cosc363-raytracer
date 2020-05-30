@@ -40,3 +40,12 @@ vec3_t cross(vec3_t a, vec3_t b) {
         a.z * b.x - a.x * b.z,
         a.x * b.y - a.y * b.x};
 }
+
+vec3_t refract(vec3_t incident, vec3_t norm, double eta) {
+    double k = 1.0 - eta * eta * (1.0 - dot(norm, incident) * dot(norm, incident));
+    if (k < 0.0) {
+        return ZERO_VEC;
+    } else {
+        return subtract(scale(incident, eta), scale(norm, eta * dot(norm, incident) + sqrt(k)));
+    }
+}

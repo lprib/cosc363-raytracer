@@ -21,7 +21,7 @@ scene_object_t default_scene_object() {
         NULL};
 }
 
-vec3_t get_lighting(scene_object_t *object, vec3_t light_pos, vec3_t view_vec, vec3_t hit) {
+vec3_t get_lighting(scene_object_t *object, vec3_t light_pos, vec3_t view_vec, vec3_t hit, vec3_t object_color) {
     double ambient_term = 0.2;
     double diffuse_term = 0.0;
     double specular_term = 0.0;
@@ -38,8 +38,6 @@ vec3_t get_lighting(scene_object_t *object, vec3_t light_pos, vec3_t view_vec, v
         if (r_dot_v > 0)
             specular_term = pow(r_dot_v, object->shininess);
     }
-
-    vec3_t object_color = object->get_color(object, hit);
 
     vec3_t ambient_color = scale(object_color, ambient_term);
     vec3_t diffuse_color = scale(object_color, l_dot_n);

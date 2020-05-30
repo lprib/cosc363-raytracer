@@ -49,3 +49,8 @@ vec3_t refract(vec3_t incident, vec3_t norm, double eta) {
         return subtract(scale(incident, eta), scale(norm, eta * dot(norm, incident) + sqrt(k)));
     }
 }
+
+vec3_t lerp(vec3_t a, vec3_t b, double t) {
+    vec3_t diff = subtract(b, a);
+    return add(a, scale(diff, t));
+}

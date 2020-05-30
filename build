@@ -7,7 +7,7 @@ MainFile="main"
 
 if [ "$1" = "build" ]; then
     SourceDir="../src/" # relative to the out directory
-    CompilerFlags="-lGL -lGLU -lglut -lm"
+    CompilerFlags="-lGL -lGLU -lglut -lm -O3"
 
     mkdir -p out
     cd out

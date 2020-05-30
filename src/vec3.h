@@ -20,5 +20,6 @@ vec3_t reflect(vec3_t incident, vec3_t norm);
 double length(vec3_t n);
 vec3_t cross(vec3_t a, vec3_t b);
 vec3_t refract(vec3_t incident, vec3_t norm, double eta);
+vec3_t lerp(vec3_t a, vec3_t b, double t);
 
 #endif

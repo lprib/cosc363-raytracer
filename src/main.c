@@ -14,7 +14,7 @@ const float HEIGHT = 20.0;
 const float EDIST = 40.0;
 const int NUMDIV = 500;
 int AA_FACTOR = 2;
-const int MAX_STEPS = 5;
+const int MAX_STEPS = 20;
 float XMIN;
 float XMAX;
 float YMIN;
@@ -24,11 +24,11 @@ scene_t scene;
 
 #define NUM_LIGHTS 2
 vec3_t lights[] = {
-    {10, 40, -3},
-    {-50, 40, -3}};
+    {20, 20, -3},
+    {20, 200, -3}};
 
 vec3_t fog_color = {0.0, 0.0, 0.0};
-double fog_intensity = 300.0;
+double fog_intensity = 200.0;
 
 vec3_t trace(ray_t *ray, int step) {
     vec3_t bg_color = ZERO_VEC;
@@ -51,15 +51,20 @@ vec3_t trace(ray_t *ray, int step) {
         if ((shadow_ray.index > -1) && (shadow_ray.distance < length(light_vec))) {
             scene_object_t *shadow_hit = &scene.objects[shadow_ray.index];
             double shadow_coef = shadow_hit->is_transparent ? shadow_hit->transparent_c : 0.2;
+            // if(shadow_ray.index != ray->index)
             color = scale(color, shadow_coef);
         }
     }
 
     if (object->is_transparent) {
-        ray_t internal_ray = new_ray(add(ray->hit, scale(ray->dir, 1.E-6)), ray->dir);
+        ray_t internal_ray = new_ray(ray->hit, ray->dir);
+        // printf("a\n");
         closest_point(&internal_ray, scene);
-        ray_t exit_ray = new_ray(add(internal_ray.hit, scale(ray->dir, 1.E-6)), ray->dir);
+        // printf("a\n");
+        ray_t exit_ray = new_ray(internal_ray.hit, ray->dir);
+        // printf("a\n");
         vec3_t behind_color = trace(&exit_ray, step);
+        // printf("a\n");
         color = lerp(color, behind_color, object->transparent_c);
         // color = add(color, scale(behind_color, object->transparent_c));
     }
@@ -163,51 +168,52 @@ void initialize() {
 
     glClearColor(0, 0, 0, 1);
 
-    scene_object_t ss[5] = {0};
+    scene = new_scene();
 
     // ss[0] = new_sphere((vec3_t){-5.0, 0.0, -90.0}, 15.0);
     // ss[0].color = (vec3_t){0, 0, 1};
-    ss[0].shininess = 5.0;
-    ss[0] = new_cone((vec3_t){-5.0, -15.0, -90.0}, 10.0, 16.0);
-    // ss[0].is_reflective = true;
-    ss[0].is_transparent = true;
-    // ss[0].transparent_c = 1.0;
-    // ss[0].is_refractive = true;
-    ss[0].refract_c = 1.0;
-    ss[0].refractive_index = 0.8;
-    ss[0].reflect_c = 0.7;
-    ss[0].color = (vec3_t){0, 0, 1};
+    scene_object_t ss0 = new_cylinder((vec3_t){-5.0, -15, -90.0}, 6.0, -5.0);
+    ss0.shininess = 5.0;
+    ss0.refract_c = 1.0;
+    ss0.refractive_index = 0.8;
+    // ss0.is_reflective = true;
+    // ss0.reflect_c = 0.7;
+    ss0.color = (vec3_t){0, 0, 1};
 
-    ss[1] = new_sphere((vec3_t){10, 10, -60}, 3.0);
-    ss[1].color = (vec3_t){0, 1, 1};
-    ss[1].is_reflective = true;
-    ss[1].reflect_c = 0.8;
+    scene_object_t ss1 = new_sphere((vec3_t){5, 6, -40}, 3.0);
+    ss1.color = (vec3_t){0, 1, 1};
+    ss1.is_reflective = true;
+    ss1.reflect_c = 0.8;
+    ss1.is_transparent = true;
+    ss1.transparent_c = 0.5;
 
-    ss[2] = new_sphere((vec3_t){5, 5, -70}, 4.0);
-    ss[2].color = (vec3_t){1, 0, 0};
-    ss[2].is_transparent = true;
-    ss[2].transparent_c = 0.5;
-    // ss[2].is_reflective = true;
-    // ss[2].reflect_c = 0.8;
+    scene_object_t ss2= new_sphere((vec3_t){5, 5, -70}, 4.0);
+    ss2.color = (vec3_t){1, 0, 0};
+    ss2.is_reflective = true;
+    ss2.reflect_c = 0.8;
 
-    ss[3] = new_sphere((vec3_t){5.0, -10.0, -160.0}, 5.0);
-    ss[3].color = (vec3_t){1, 1, 0};
-    ss[3].is_reflective = true;
-    ss[3].is_transparent = true;
-    ss[3].transparent_c = 1.0;
-    ss[3].is_refractive = true;
-    ss[3].refract_c = 1.0;
-    ss[3].refractive_index = 0.8;
-    ss[3].reflect_c = 0.7;
+    scene_object_t ss3 = new_sphere((vec3_t){5.0, -10.0, -160.0}, 5.0);
+    ss3.color = (vec3_t){1, 1, 0};
+    ss3.is_reflective = true;
+    ss3.is_transparent = true;
+    ss3.transparent_c = 1.0;
+    ss3.is_refractive = true;
+    ss3.refract_c = 1.0;
+    ss3.refractive_index = 0.8;
+    ss3.reflect_c = 0.7;
 
-    ss[4] = new_plane4(
+    scene_object_t ss4 = new_plane4(
         (vec3_t){-20, -15, -40},
         (vec3_t){20, -15, -40},
         (vec3_t){20, -15, -200},
         (vec3_t){-20, -15, -200});
-    ss[4].is_specular = false;
+    ss4.is_specular = false;
 
-    scene = new_scene(ss, sizeof(ss) / sizeof(scene_object_t));
+    add_object(&scene, &ss0);
+    add_object(&scene, &ss1);
+    add_object(&scene, &ss2);
+    add_object(&scene, &ss3);
+    add_object(&scene, &ss4);
 }
 
 int main(int argc, char **argv) {

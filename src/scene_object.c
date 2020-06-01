@@ -29,6 +29,7 @@ vec3_t get_lighting(scene_object_t *object, vec3_t *light_pos, int num_lights, v
     vec3_t normal_vec = object->normal(object, hit);
 
     vec3_t color_sum = scale(object_color, ambient_term);
+
     for (int i = 0; i < num_lights; i++) {
 
         vec3_t light_vec = subtract(light_pos[i], hit);
@@ -53,8 +54,14 @@ vec3_t get_lighting(scene_object_t *object, vec3_t *light_pos, int num_lights, v
     return color_sum;
 }
 
-scene_t new_scene(scene_object_t *objs, int len) {
-    scene_object_t *buf = malloc(sizeof(scene_object_t) * len);
-    memcpy(buf, objs, sizeof(scene_object_t) * len);
-    return (scene_t){buf, len};
+scene_t new_scene() {
+    scene_object_t* x = (scene_object_t*)malloc(sizeof(scene_object_t));
+    scene_t s = {x, 0};
+    return s;
+}
+
+void add_object(scene_t* scene, scene_object_t* new_obj) {
+    scene->objects = realloc(scene->objects, sizeof(scene_object_t) * (scene->length + 1));
+    memcpy(&scene->objects[scene->length], new_obj, sizeof(scene_object_t));
+    scene ->length++;
 }

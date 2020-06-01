@@ -1,6 +1,7 @@
 #include "vec3.h"
 
 #include <math.h>
+#include <stdio.h>
 
 vec3_t add(vec3_t a, vec3_t b) {
     return (vec3_t){a.x + b.x, a.y + b.y, a.z + b.z};
@@ -53,4 +54,8 @@ vec3_t refract(vec3_t incident, vec3_t norm, double eta) {
 vec3_t lerp(vec3_t a, vec3_t b, double t) {
     vec3_t diff = subtract(b, a);
     return add(a, scale(diff, t));
+}
+
+void print_vec(vec3_t n) {
+    printf("%f %f %f\n", n.x, n.y, n.z);
 }

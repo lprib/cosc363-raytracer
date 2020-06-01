@@ -5,8 +5,8 @@
 
 #define MAX_ITERATIONS 50
 
-#define BUF_WIDTH 2000
-#define BUF_HEIGHT 2000
+#define BUF_WIDTH 4000
+#define BUF_HEIGHT 4000
 
 static double cx = 0.3;
 static double cy = 0.5;
@@ -45,7 +45,7 @@ void populate_buffer() {
     }
 }
 
-vec3_t get_color_st(double s, double t) {
+vec3_t get_julia_color_st(double s, double t) {
     int x_idx = (int)(s * (double)BUF_WIDTH);
     int y_idx = (int)(t * (double)BUF_HEIGHT);
     double c = buffer[y_idx * BUF_WIDTH + x_idx];

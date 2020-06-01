@@ -1,11 +1,11 @@
 #include "plane.h"
+#include "bmp.h"
+#include "julia.h"
 #include "scene_object.h"
 #include "vec3.h"
-#include "julia.h"
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <math.h>
-#include "bmp.h"
 
 typedef struct {
     vec3_t a;
@@ -13,7 +13,9 @@ typedef struct {
     vec3_t c;
     vec3_t d;
     int nverts;
-    texture_t tex;
+    // texture_t tex;
+    bool is_julia;
+    bool is_checked;
 } plane_data_t;
 
 bool is_inside(scene_object_t *this, vec3_t q) {
@@ -61,13 +63,15 @@ double plane_intersect(scene_object_t *this, vec3_t p0, vec3_t dir) {
     vec3_t n = this->normal(this, p0);
     vec3_t v_dif = subtract(d->a, p0);
     double d_dot_n = dot(dir, n);
-    if(fabs(d_dot_n) < 1.E-4) return -1;
+    if (fabs(d_dot_n) < 1.E-4)
+        return -1;
 
     double t = dot(v_dif, n) / d_dot_n;
-    if(fabs(t) < 1.E-4) return -1;
+    if (fabs(t) < 1.E-4)
+        return -1;
 
     vec3_t q = add(p0, scale(dir, t));
-    if(is_inside(this, q)) {
+    if (is_inside(this, q)) {
         return t;
     } else {
         return -1;
@@ -76,69 +80,64 @@ double plane_intersect(scene_object_t *this, vec3_t p0, vec3_t dir) {
 
 void plane_desctruct(scene_object_t *this) {
     plane_data_t *d = (plane_data_t *)this->data;
-    free_texture(&d->tex);
+    // free_texture(&d->tex);
     free(this->data);
-    }
-
-vec3_t plane_get_color(scene_object_t*this, vec3_t hit) {
-    plane_data_t *d = (plane_data_t *)this->data;
-
-    // return this->color;
-    int stripe_width = 5;
-    int iz = hit.z;
-    int k = iz%2;
-
-    vec3_t color = ZERO_VEC;
-    if(k==0) {
-        color = (vec3_t){0, 1, 0};
-    } else {
-        color = (vec3_t){1, 1, 0.5};
-    }
-
-    double x1 = -15, x2 = 5, z1 = -60, z2=-90;
-    double coord_s = (hit.x - x1)/(x2-x1);
-    double coord_t = (hit.z - z1)/(z2-z1);
-
-    if(coord_s > 0 && coord_s < 1 && coord_t > 0 && coord_t < 1) {
-        // color = get_color_at(&d->tex, coord_s, coord_t);
-        color = get_color_st(coord_s, coord_t);
-    }
-
-    return color;
 }
 
-scene_object_t new_plane_from_data(plane_data_t* data) {
+vec3_t plane_get_color(scene_object_t *this, vec3_t hit) {
+    plane_data_t *d = (plane_data_t *)this->data;
+
+    if(d->is_checked) {
+        double stripe_width = 5;
+        int ix = (int)floor(hit.x / stripe_width);
+        int iz = (int)floor(hit.z / stripe_width);
+        int k = (ix + iz) % 2;
+
+        if (k == 0) {
+            return (vec3_t){0, 0, 0};
+        } else {
+            return (vec3_t){1, 1, 1};
+        }
+    } else if(d->is_julia) {
+        double s = (hit.x - d->a.x) / (d->c.x - d->a.x);
+        double t = (hit.y - d->a.y) / (d->c.y - d->a.y);
+        return get_julia_color_st(s, t);
+    } else {
+        return this->color;
+    }
+}
+
+scene_object_t new_plane_from_data(plane_data_t *data) {
     scene_object_t n = default_scene_object();
     n.data = data;
     n.intersect = &plane_intersect;
     n.normal = &plane_normal;
     n.desctruct = &plane_desctruct;
     n.get_color = &plane_get_color;
-
-    data->tex = new_texture("Butterfly.bmp");
-
-    populate_buffer();
-
     return n;
 }
 
-scene_object_t new_plane4(vec3_t pa, vec3_t pb, vec3_t pc, vec3_t pd) {
-    plane_data_t* data = (plane_data_t*) malloc(sizeof(plane_data_t));
+scene_object_t new_plane4(vec3_t pa, vec3_t pb, vec3_t pc, vec3_t pd, bool is_checked, bool is_julia) {
+    plane_data_t *data = (plane_data_t *)malloc(sizeof(plane_data_t));
     data->a = pa;
     data->b = pb;
     data->c = pc;
     data->d = pd;
+    data->is_checked = is_checked;
+    data->is_julia = is_julia;
     data->nverts = 4;
 
     return new_plane_from_data(data);
 }
 
-scene_object_t new_plane3(vec3_t pa, vec3_t pb, vec3_t pc) {
-    plane_data_t* data = (plane_data_t*) malloc(sizeof(plane_data_t));
+scene_object_t new_plane3(vec3_t pa, vec3_t pb, vec3_t pc, bool is_checked, bool is_julia) {
+    plane_data_t *data = (plane_data_t *)malloc(sizeof(plane_data_t));
     data->a = pa;
     data->b = pb;
     data->c = pc;
     data->d = ZERO_VEC;
+    data->is_checked = is_checked;
+    data->is_julia = is_julia;
     data->nverts = 3;
 
     return new_plane_from_data(data);

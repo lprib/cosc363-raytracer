@@ -30,6 +30,8 @@ vec3_t get_lighting(scene_object_t *object, vec3_t *light_pos, int num_lights, v
 
     vec3_t color_sum = scale(object_color, ambient_term);
 
+    // return color_sum;
+
     for (int i = 0; i < num_lights; i++) {
 
         vec3_t light_vec = subtract(light_pos[i], hit);

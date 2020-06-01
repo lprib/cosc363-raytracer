@@ -5,6 +5,6 @@
 
 void populate_buffer();
 
-vec3_t get_color_st(double s, double t);
+vec3_t get_julia_color_st(double s, double t);
 
 #endif

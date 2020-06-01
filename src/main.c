@@ -7,14 +7,16 @@
 #include "cylinder.h"
 #include "plane.h"
 #include "ray.h"
+#include "scene.h"
 #include "scene_object.h"
 #include "sphere.h"
 #include "vec3.h"
+#include "julia.h"
 
 const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
 const float EDIST = 40.0;
-const int NUMDIV = 500;
+const int NUMDIV = 200;
 int AA_FACTOR = 2;
 const int MAX_STEPS = 20;
 float XMIN;
@@ -31,11 +33,11 @@ vec3_t lights[] = {
 
 vec3_t spolight_location = {5, 0, -90};
 // gets normalized in initialize()
-vec3_t spolight_direction = {-1, -1, 0};
+vec3_t spolight_direction = {-1, -1, 0}; 
 double spotlight_angle = 0.5;
 
 vec3_t fog_color = {0.0, 0.0, 0.0};
-double fog_intensity = 500.0;
+double fog_intensity = 1000.0;
 
 vec3_t trace(ray_t *ray, int step) {
     vec3_t bg_color = ZERO_VEC;
@@ -43,9 +45,12 @@ vec3_t trace(ray_t *ray, int step) {
     scene_object_t *object;
 
     closest_point(ray, scene);
-    if (ray->index == -1)
+    if (ray->index == -1) {
         return fog_color;
+    }
     object = &scene.objects[ray->index];
+
+    // return object->get_color(object, ray->hit);
 
     color = get_lighting(object, lights, NUM_LIGHTS, negate(ray->dir), ray->hit, object->get_color(object, ray->hit));
 
@@ -58,7 +63,6 @@ vec3_t trace(ray_t *ray, int step) {
         if ((shadow_ray.index > -1) && (shadow_ray.distance < length(light_vec))) {
             scene_object_t *shadow_hit = &scene.objects[shadow_ray.index];
             double shadow_coef = shadow_hit->is_transparent ? shadow_hit->transparent_c : 0.2;
-            // if(shadow_ray.index != ray->index)
             color = scale(color, shadow_coef);
         }
     }
@@ -107,18 +111,16 @@ vec3_t trace(ray_t *ray, int step) {
         // hit is within spotlight boundary
         ray_t spotlight_shadow_ray = new_ray(ray->hit, hit_to_spotlight);
         closest_point(&spotlight_shadow_ray, scene);
-        if((spotlight_shadow_ray.index == -1) || (spotlight_shadow_ray.distance > length(hit_to_spotlight))) {
-            color = add(color, (vec3_t){0.3, 0.3, 0.3});
+        if ((spotlight_shadow_ray.index == -1) || (spotlight_shadow_ray.distance > length(hit_to_spotlight))) {
+            // color = add(color, (vec3_t){0.3, 0.3, 0.3});
         }
     }
 
-    //fog
-    // if(step == 1) {
     double fog_scale = ray->distance / fog_intensity;
-    if (fog_scale > 1.0)
+    if (fog_scale > 1.0) {
         fog_scale = 1.0;
+    }
     color = lerp(color, fog_color, fog_scale);
-    // }
 
     return color;
 }
@@ -142,6 +144,9 @@ void display() {
 
     int progress_division = NUMDIV / 10;
     int percentage = 0;
+
+    printf("Caching julia set\n");
+    populate_buffer();
 
     printf("Rendering...\n");
 
@@ -203,58 +208,7 @@ void initialize() {
     glClearColor(0, 0, 0, 1);
 
     scene = new_scene();
-
-    // ss[0] = new_sphere((vec3_t){-5.0, 0.0, -90.0}, 15.0);
-    scene_object_t ss0 = new_cone((vec3_t){-5.0, -15, -90.0}, 6.0, 5.0);
-    ss0.color = (vec3_t){0, 0, 1};
-    // ss0.shininess = 5.0;
-    // ss0.refract_c = 1.0;
-    // ss0.refractive_index = 0.8;
-    // ss0.is_reflective = true;
-    // ss0.reflect_c = 0.7;
-
-    // scene_object_t ss0 = new_sphere((vec3_t) {-5, -10, -90}, 5.0);
-    // ss0.color = (vec3_t){1, 0, 1};
-
-
-    scene_object_t ss1 = new_sphere((vec3_t){5, 6, -40}, 3.0);
-    ss1.color = (vec3_t){0, 1, 1};
-    ss1.is_reflective = true;
-    ss1.reflect_c = 0.8;
-    ss1.is_transparent = false;
-    ss1.transparent_c = 0.5;
-
-    scene_object_t ss2 = new_sphere((vec3_t){5, 5, -70}, 4.0);
-    ss2.color = (vec3_t){1, 0, 0};
-    ss2.is_reflective = true;
-    ss2.reflect_c = 0.8;
-
-    scene_object_t ss3 = new_sphere((vec3_t){-2.0, -10.0, -70.0}, 5.0);
-    ss3.color = (vec3_t){1, 1, 0};
-    ss3.is_reflective = false;
-    ss3.is_transparent = true;
-    ss3.transparent_c = 1.0;
-    ss3.is_refractive = true;
-    ss3.refract_c = 1.0;
-    ss3.refractive_index = 0.95;
-    ss3.reflect_c = 0.7;
-
-    scene_object_t ss4 = new_plane4(
-        (vec3_t){-20, -15, -40},
-        (vec3_t){20, -15, -40},
-        (vec3_t){20, -15, -200},
-        (vec3_t){-20, -15, -200});
-    ss4.is_specular = false;
-
-    // scene_object_t ss5 = new_plane4(
-    //     (vec3_t){}
-    // )
-
-    add_object(&scene, &ss0);
-    add_object(&scene, &ss1);
-    // add_object(&scene, &ss2);
-    // add_object(&scene, &ss3);
-    add_object(&scene, &ss4);
+    create_scene(&scene);
 }
 
 int main(int argc, char **argv) {

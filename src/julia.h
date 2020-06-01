@@ -3,8 +3,7 @@
 
 #include "vec3.h"
 
-void populate_buffer();
-
+// return color of julia set from normalized st coords
 vec3_t get_julia_color_st(double s, double t);
 
 #endif

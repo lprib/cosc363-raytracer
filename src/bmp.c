@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// adapted from lab bmp loader
 texture_t new_texture(char *filename) {
     texture_t new_tex;
 
@@ -20,6 +21,7 @@ texture_t new_texture(char *filename) {
         exit(1);
     }
 
+    // use this to get rid of compiler warnings
     size_t ignore = 0;
 
     ignore = fread(header1, sizeof(header1), 1, file);

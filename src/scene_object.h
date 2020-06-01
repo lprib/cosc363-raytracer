@@ -16,6 +16,8 @@ typedef struct scene_object_s {
     double refractive_index;
     double shininess;
     void *data;
+    
+    // V-Table for polymorphism of different shapes:
     double (*intersect)(struct scene_object_s *this, vec3_t p0, vec3_t dir);
     vec3_t (*normal)(struct scene_object_s *this, vec3_t pos);
     void (*desctruct)(struct scene_object_s *this);

@@ -9,6 +9,7 @@
 
 #include <math.h>
 
+//create cube at coords with size and color
 void add_cube(scene_t* scene, double x, double y, double z, double size, vec3_t color) {
     double s = size;
     double r2 = 1.0 / sqrt(2);
@@ -55,6 +56,7 @@ void add_cube(scene_t* scene, double x, double y, double z, double size, vec3_t 
     add_object(scene, &top);
 }
 
+//populate scene with scene_object_t's
 void create_scene(scene_t *scene) {
     scene_object_t bottom_plane = new_plane4(
         (vec3_t){-30, -15, 0},

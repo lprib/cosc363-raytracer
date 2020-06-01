@@ -27,16 +27,11 @@ vec3_t get_lighting(scene_object_t *object, vec3_t *light_pos, int num_lights, v
     double specular_term = 0.0;
 
     vec3_t normal_vec = object->normal(object, hit);
-
     vec3_t color_sum = scale(object_color, ambient_term);
 
-    // return color_sum;
-
     for (int i = 0; i < num_lights; i++) {
-
         vec3_t light_vec = subtract(light_pos[i], hit);
         light_vec = normalize(light_vec);
-
         double l_dot_n = dot(light_vec, normal_vec);
 
         if (object->is_specular) {
@@ -46,7 +41,6 @@ vec3_t get_lighting(scene_object_t *object, vec3_t *light_pos, int num_lights, v
                 specular_term = pow(r_dot_v, object->shininess);
         }
 
-        // vec3_t ambient_color = scale(object_color, ambient_term);
         vec3_t diffuse_color = scale(object_color, l_dot_n);
         vec3_t specular_color = scale((vec3_t){1.0, 1.0, 1.0}, specular_term);
 

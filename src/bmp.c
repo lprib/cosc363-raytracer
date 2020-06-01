@@ -20,17 +20,19 @@ texture_t new_texture(char *filename) {
         exit(1);
     }
 
-    fread(header1, sizeof(header1), 1, file);
-    fread(&width, sizeof(int), 1, file);
-    fread(&height, sizeof(int), 1, file);
-    fread(&planes, sizeof(short int), 1, file);
-    fread(&bpp, sizeof(short int), 1, file);
-    fread(header2, sizeof(header2), 1, file);
+    size_t ignore = 0;
+
+    ignore = fread(header1, sizeof(header1), 1, file);
+    ignore = fread(&width, sizeof(int), 1, file);
+    ignore = fread(&height, sizeof(int), 1, file);
+    ignore = fread(&planes, sizeof(short int), 1, file);
+    ignore = fread(&bpp, sizeof(short int), 1, file);
+    ignore = fread(header2, sizeof(header2), 1, file);
 
     nbytes = bpp / 8;
     size = width * height * nbytes;
     char *image_data = malloc(sizeof(char) * size);
-    fread(image_data, size, 1, file);
+    ignore = fread(image_data, size, 1, file);
     for (int i = 0; i < width * height; i++) {
         index = i * nbytes;
         temp = image_data[index];

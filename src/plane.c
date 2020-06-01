@@ -1,6 +1,7 @@
 #include "plane.h"
 #include "scene_object.h"
 #include "vec3.h"
+#include "julia.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
@@ -99,7 +100,8 @@ vec3_t plane_get_color(scene_object_t*this, vec3_t hit) {
     double coord_t = (hit.z - z1)/(z2-z1);
 
     if(coord_s > 0 && coord_s < 1 && coord_t > 0 && coord_t < 1) {
-        color = get_color_at(&d->tex, coord_s, coord_t);
+        // color = get_color_at(&d->tex, coord_s, coord_t);
+        color = get_color_st(coord_s, coord_t);
     }
 
     return color;
@@ -114,6 +116,8 @@ scene_object_t new_plane_from_data(plane_data_t* data) {
     n.get_color = &plane_get_color;
 
     data->tex = new_texture("Butterfly.bmp");
+
+    populate_buffer();
 
     return n;
 }

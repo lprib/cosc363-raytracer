@@ -1,13 +1,15 @@
 #include <GL/freeglut.h>
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 
+#include "cone.h"
+#include "cylinder.h"
 #include "plane.h"
 #include "ray.h"
 #include "scene_object.h"
 #include "sphere.h"
 #include "vec3.h"
-#include "cylinder.h"
-#include "cone.h"
 
 const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
@@ -22,13 +24,18 @@ float YMAX;
 
 scene_t scene;
 
-#define NUM_LIGHTS 2
+#define NUM_LIGHTS 1
 vec3_t lights[] = {
-    {20, 20, -3},
+    {20, 0, -3},
     {20, 200, -3}};
 
+vec3_t spolight_location = {5, 0, -90};
+// gets normalized in initialize()
+vec3_t spolight_direction = {-1, -1, 0};
+double spotlight_angle = 0.5;
+
 vec3_t fog_color = {0.0, 0.0, 0.0};
-double fog_intensity = 200.0;
+double fog_intensity = 500.0;
 
 vec3_t trace(ray_t *ray, int step) {
     vec3_t bg_color = ZERO_VEC;
@@ -73,7 +80,7 @@ vec3_t trace(ray_t *ray, int step) {
         vec3_t norm = object->normal(object, ray->hit);
         //maybe normalise incident
 
-        vec3_t refract_direction = refract(normalize(ray->dir), negate(normalize(norm)), 1 / object->refractive_index);
+        vec3_t refract_direction = refract(normalize(ray->dir), normalize(norm), 1 / object->refractive_index);
         ray_t refract_ray = new_ray(ray->hit, refract_direction);
         closest_point(&refract_ray, scene);
         vec3_t exiting_normal = object->normal(object, refract_ray.hit);
@@ -93,11 +100,24 @@ vec3_t trace(ray_t *ray, int step) {
         color = add(color, scale(reflected_color, object->reflect_c));
     }
 
+    //spotlight
+    vec3_t hit_to_spotlight = subtract(spolight_location, ray->hit);
+    double cos_angle_to_spotlight = dot(spolight_direction, negate(hit_to_spotlight)) / length(spolight_direction) / length(hit_to_spotlight);
+    if (acos(cos_angle_to_spotlight) < spotlight_angle) {
+        // hit is within spotlight boundary
+        ray_t spotlight_shadow_ray = new_ray(ray->hit, hit_to_spotlight);
+        closest_point(&spotlight_shadow_ray, scene);
+        if((spotlight_shadow_ray.index == -1) || (spotlight_shadow_ray.distance > length(hit_to_spotlight))) {
+            color = add(color, (vec3_t){0.3, 0.3, 0.3});
+        }
+    }
+
     //fog
     // if(step == 1) {
-        double fog_scale = ray->distance / fog_intensity;
-        if(fog_scale > 1.0) fog_scale = 1.0;
-        color = lerp(color, fog_color, fog_scale);
+    double fog_scale = ray->distance / fog_intensity;
+    if (fog_scale > 1.0)
+        fog_scale = 1.0;
+    color = lerp(color, fog_color, fog_scale);
     // }
 
     return color;
@@ -119,6 +139,11 @@ void display() {
     glBegin(GL_QUADS);
 
     vec3_t buf[AA_FACTOR * AA_FACTOR];
+
+    int progress_division = NUMDIV / 10;
+    int percentage = 0;
+
+    printf("Rendering...\n");
 
     for (int i = 0; i < NUMDIV; i++) {
         xp = XMIN + i * cell_x;
@@ -151,7 +176,14 @@ void display() {
             glVertex2f(xp + cell_x, yp + cell_y);
             glVertex2f(xp, yp + cell_y);
         }
+
+        if (i % progress_division == 0) {
+            printf("%d%% complete.\n", percentage);
+            percentage += 10;
+        }
     }
+
+    printf("100%% complete.\n");
 
     glEnd();
     glFlush();
@@ -163,6 +195,8 @@ void initialize() {
     YMIN = -HEIGHT * 0.5;
     YMAX = HEIGHT * 0.5;
 
+    spolight_direction = normalize(spolight_direction);
+
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(XMIN, XMAX, YMIN, YMAX);
 
@@ -171,35 +205,38 @@ void initialize() {
     scene = new_scene();
 
     // ss[0] = new_sphere((vec3_t){-5.0, 0.0, -90.0}, 15.0);
-    // ss[0].color = (vec3_t){0, 0, 1};
-    scene_object_t ss0 = new_cylinder((vec3_t){-5.0, -15, -90.0}, 6.0, -5.0);
-    ss0.shininess = 5.0;
-    ss0.refract_c = 1.0;
-    ss0.refractive_index = 0.8;
+    scene_object_t ss0 = new_cone((vec3_t){-5.0, -15, -90.0}, 6.0, 5.0);
+    ss0.color = (vec3_t){0, 0, 1};
+    // ss0.shininess = 5.0;
+    // ss0.refract_c = 1.0;
+    // ss0.refractive_index = 0.8;
     // ss0.is_reflective = true;
     // ss0.reflect_c = 0.7;
-    ss0.color = (vec3_t){0, 0, 1};
+
+    // scene_object_t ss0 = new_sphere((vec3_t) {-5, -10, -90}, 5.0);
+    // ss0.color = (vec3_t){1, 0, 1};
+
 
     scene_object_t ss1 = new_sphere((vec3_t){5, 6, -40}, 3.0);
     ss1.color = (vec3_t){0, 1, 1};
     ss1.is_reflective = true;
     ss1.reflect_c = 0.8;
-    ss1.is_transparent = true;
+    ss1.is_transparent = false;
     ss1.transparent_c = 0.5;
 
-    scene_object_t ss2= new_sphere((vec3_t){5, 5, -70}, 4.0);
+    scene_object_t ss2 = new_sphere((vec3_t){5, 5, -70}, 4.0);
     ss2.color = (vec3_t){1, 0, 0};
     ss2.is_reflective = true;
     ss2.reflect_c = 0.8;
 
-    scene_object_t ss3 = new_sphere((vec3_t){5.0, -10.0, -160.0}, 5.0);
+    scene_object_t ss3 = new_sphere((vec3_t){-2.0, -10.0, -70.0}, 5.0);
     ss3.color = (vec3_t){1, 1, 0};
-    ss3.is_reflective = true;
+    ss3.is_reflective = false;
     ss3.is_transparent = true;
     ss3.transparent_c = 1.0;
     ss3.is_refractive = true;
     ss3.refract_c = 1.0;
-    ss3.refractive_index = 0.8;
+    ss3.refractive_index = 0.95;
     ss3.reflect_c = 0.7;
 
     scene_object_t ss4 = new_plane4(
@@ -209,10 +246,14 @@ void initialize() {
         (vec3_t){-20, -15, -200});
     ss4.is_specular = false;
 
+    // scene_object_t ss5 = new_plane4(
+    //     (vec3_t){}
+    // )
+
     add_object(&scene, &ss0);
     add_object(&scene, &ss1);
-    add_object(&scene, &ss2);
-    add_object(&scene, &ss3);
+    // add_object(&scene, &ss2);
+    // add_object(&scene, &ss3);
     add_object(&scene, &ss4);
 }
 
@@ -225,17 +266,17 @@ int main(int argc, char **argv) {
     glutDisplayFunc(display);
     initialize();
 
-    if(argc > 1) {
+    if (argc > 1) {
         int aa = atoi(argv[1]);
-        if(aa > 0) {
+        if (aa > 0) {
             printf("Continuing with %dx anti-aliasing\n", aa);
             AA_FACTOR = aa;
         } else {
-            printf("invalid AA amount %s, continuing with 2x AA\n", argv[1]);
+            printf("invalid anti-aliasing amount %s, continuing with 2x anti-aliasing\n", argv[1]);
             AA_FACTOR = 2;
         }
     } else {
-        printf("invalid AA amount, continuing with 2x AA\n");
+        printf("No anti-aliasing amount specified, continuing with 2x anti-aliasing\n");
         AA_FACTOR = 2;
     }
 

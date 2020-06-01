@@ -88,6 +88,7 @@ vec3_t plane_get_color(scene_object_t *this, vec3_t hit) {
     plane_data_t *d = (plane_data_t *)this->data;
 
     if(d->is_checked) {
+        // calculate chequered pattern
         double stripe_width = 5;
         int ix = (int)floor(hit.x / stripe_width);
         int iz = (int)floor(hit.z / stripe_width);
@@ -99,6 +100,7 @@ vec3_t plane_get_color(scene_object_t *this, vec3_t hit) {
             return (vec3_t){0.7, 0.7, 0.7};
         }
     } else if(d->is_julia) {
+        // get julia set color from julia.c
         double s = (hit.x - d->a.x) / (d->c.x - d->a.x);
         double t = (hit.y - d->a.y) / (d->c.y - d->a.y);
         return get_julia_color_st(s, t);

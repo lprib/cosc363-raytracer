@@ -38,6 +38,7 @@ double cone_intersect(scene_object_t *this, vec3_t p0, vec3_t dir) {
 
     double final_t;
 
+    // swap values such that t1 is always the nearest intersection
     if (t1 > t2) {
         final_t = t2;
     } else {
@@ -46,6 +47,7 @@ double cone_intersect(scene_object_t *this, vec3_t p0, vec3_t dir) {
 
     double ray_y = p0.y + final_t * dir.y;
 
+    // check ray hit is within bounds of cone
     if ((ray_y > data->base.y) && (ray_y < data->base.y + data->h)) {
         return final_t;
     } else {

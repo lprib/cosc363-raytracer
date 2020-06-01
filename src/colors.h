@@ -1,6 +1,8 @@
 #ifndef COLORS_H
 #define COLORS_H
 
+// define color pallette for use in scene
+
 #define WHITE byte_color(244, 241, 222)
 #define RED byte_color(224, 122, 95)
 #define BLUE byte_color(61, 64, 91)

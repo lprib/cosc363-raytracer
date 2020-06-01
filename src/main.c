@@ -8,34 +8,42 @@
 #include "scene_object.h"
 #include "vec3.h"
 
-const float WIDTH = 20.0;
-const float HEIGHT = 20.0;
-const float EDIST = 40.0;
-const int NUMDIV = 500;
-int AA_FACTOR = 2;
-const int MAX_STEPS = 20;
-float XMIN;
-float XMAX;
-float YMIN;
-float YMAX;
+static const float WIDTH = 20.0;
+static const float HEIGHT = 20.0;
+static const float EDIST = 40.0;
+static const int NUMDIV = 500;
+static int AA_FACTOR = 2;
+static const int MAX_STEPS = 20;
+
+// these are set in initialize(), because C does not allow constant evaluation in top-level variables
+static float XMIN;
+static float XMAX;
+static float YMIN;
+static float YMAX;
 
 scene_t scene;
 
+// arbitrary amount of lights can be added.
+// their phong lighting and shadows will automatically be calculated
 #define NUM_LIGHTS 2
-vec3_t lights[] = {
-    {20, 10, -20},
+static vec3_t lights[] = {
+    {30, 20, -20},
     {10, 2, -3}};
 
-vec3_t spolight_location = {-5, -3.6, -60};
+// world space location of spotlight
+static vec3_t spolight_location = {-5, -3.6, -60};
+// direction that spotlight is facing
 // gets normalized in initialize()
-vec3_t spolight_direction = {-1, -1, -3};
-double spotlight_angle = 0.2;
+static vec3_t spolight_direction = {-1, -1, -3};
+// cone angle (in radians) of spotlight
+static double spotlight_angle = 0.2;
 
-vec3_t fog_color = {0.0, 0.0, 0.0};
-double fog_intensity = 210.0;
+// color of fog
+static vec3_t fog_color = {0.0, 0.0, 0.0};
+// fog dropoff. when ray distance = fog_intensity, nothing will be visible
+static double fog_intensity = 180.0;
 
 vec3_t trace(ray_t *ray, int step) {
-    vec3_t bg_color = ZERO_VEC;
     vec3_t color = ZERO_VEC;
     scene_object_t *object;
 
@@ -45,10 +53,9 @@ vec3_t trace(ray_t *ray, int step) {
     }
     object = &scene.objects[ray->index];
 
-    // return object->get_color(object, ray->hit);
-
     color = get_lighting(object, lights, NUM_LIGHTS, negate(ray->dir), ray->hit, object->get_color(object, ray->hit));
 
+    // calculate shadows for each light:
     for (int i = 0; i < NUM_LIGHTS; i++) {
         vec3_t light_vec = subtract(lights[i], ray->hit);
 
@@ -57,6 +64,7 @@ vec3_t trace(ray_t *ray, int step) {
 
         if ((shadow_ray.index > -1) && (shadow_ray.distance < length(light_vec))) {
             scene_object_t *shadow_hit = &scene.objects[shadow_ray.index];
+            // tint shadows accordingly blocking object is transparent
             if (shadow_hit->is_transparent) {
                 double transparent_shadow_coef = 1.5;
                 color = add(color, scale(shadow_hit->color, transparent_shadow_coef *(1 - shadow_hit->transparent_c)));
@@ -66,16 +74,20 @@ vec3_t trace(ray_t *ray, int step) {
         }
     }
 
+    // calculate transparency
     if (object->is_transparent) {
         ray_t internal_ray = new_ray(ray->hit, ray->dir);
         closest_point(&internal_ray, scene);
         ray_t exit_ray = new_ray(internal_ray.hit, ray->dir);
         vec3_t behind_color = trace(&exit_ray, step);
+
+        // calculate transparency color in two different ways, and combine them with linear interpolation
         vec3_t color1 = lerp(color, behind_color, object->transparent_c);
         vec3_t color2 = add(color, scale(behind_color, object->transparent_c));
         color = lerp(color1, color2, 0.3);
     }
 
+    // calculate refraction
     if (object->is_refractive && step < MAX_STEPS) {
         vec3_t norm = object->normal(object, ray->hit);
         vec3_t refract_direction = refract(normalize(ray->dir), normalize(norm), 1 / object->refractive_index);
@@ -89,6 +101,7 @@ vec3_t trace(ray_t *ray, int step) {
         color = lerp(color, refracted_color, object->refract_c);
     }
 
+    // calculate reflection
     if (object->is_reflective && step < MAX_STEPS) {
         vec3_t normal_vec = object->normal(object, ray->hit);
         vec3_t reflected_dir = reflect(ray->dir, normal_vec);
@@ -97,7 +110,7 @@ vec3_t trace(ray_t *ray, int step) {
         color = add(color, scale(reflected_color, object->reflect_c));
     }
 
-    //spotlight
+    // calculate spotlight lighting and shadows
     vec3_t hit_to_spotlight = subtract(spolight_location, ray->hit);
     double cos_angle_to_spotlight = dot(spolight_direction, negate(hit_to_spotlight)) / length(spolight_direction) / length(hit_to_spotlight);
     if (acos(cos_angle_to_spotlight) < spotlight_angle) {
@@ -109,6 +122,7 @@ vec3_t trace(ray_t *ray, int step) {
         }
     }
 
+    // calculate fog color fall-off
     vec3_t fog_dist = (vec3_t){ray->hit.x * 3.5, ray->hit.y, ray->hit.z};
     double fog_scale = length(fog_dist) / fog_intensity;
     if (fog_scale > 1.0) {
@@ -134,6 +148,7 @@ void display() {
 
     glBegin(GL_QUADS);
 
+    // buffer to store subpixel colors, to be averaged by AA
     vec3_t buf[AA_FACTOR * AA_FACTOR];
 
     int progress_division = NUMDIV / 10;
@@ -147,6 +162,7 @@ void display() {
         for (int j = 0; j < NUMDIV; j++) {
             yp = YMIN + j * cell_y;
 
+            // populate subpixel buffer for AA
             for (int aa_x = 0; aa_x < AA_FACTOR; aa_x++) {
                 for (int aa_y = 0; aa_y < AA_FACTOR; aa_y++) {
                     xsp = xp + aa_x * subcell_x;
@@ -158,28 +174,28 @@ void display() {
                 }
             }
 
-            //average
+            // average subpixel buffer
             vec3_t sum = ZERO_VEC;
             for (int buf_idx = 0; buf_idx < AA_FACTOR * AA_FACTOR; buf_idx++) {
                 sum = add(sum, buf[buf_idx]);
             }
-
             vec3_t color = scale(sum, 1.0 / (double)(AA_FACTOR * AA_FACTOR));
 
             glColor3f(color.x, color.y, color.z);
-            glVertex2f(xp, yp); //Draw each cell with its color value
+            glVertex2f(xp, yp);
             glVertex2f(xp + cell_x, yp);
             glVertex2f(xp + cell_x, yp + cell_y);
             glVertex2f(xp, yp + cell_y);
         }
 
+        // print progress updates
         if (i % progress_division == 0) {
-            printf("%d%% complete.\n", percentage);
+            printf("%d%% complete\n", percentage);
             percentage += 10;
         }
     }
 
-    printf("100%% complete.\n");
+    printf("100%% complete\n");
 
     glEnd();
     glFlush();
@@ -195,7 +211,6 @@ void initialize() {
 
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(XMIN, XMAX, YMIN, YMAX);
-
     glClearColor(0, 0, 0, 1);
 
     scene = new_scene();
@@ -211,10 +226,12 @@ int main(int argc, char **argv) {
     glutDisplayFunc(display);
     initialize();
 
+    // attempt to get AA amount from command line arguments
     if (argc > 1) {
         int aa = atoi(argv[1]);
         if (aa > 0) {
             printf("Continuing with %dx anti-aliasing\n", aa);
+            printf("%d rays per pixel\n", aa*aa);
             AA_FACTOR = aa;
         } else {
             printf("invalid anti-aliasing amount %s, continuing with 2x anti-aliasing\n", argv[1]);

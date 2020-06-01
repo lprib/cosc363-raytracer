@@ -12,10 +12,9 @@ typedef struct {
     double distance;
 } ray_t;
 
-ray_t default_ray();
-
 ray_t new_ray(vec3_t source, vec3_t direction);
 
+// populate this ray with hit/index/distance fields based on scene
 void closest_point(ray_t *this, scene_t scene);
 
 #endif

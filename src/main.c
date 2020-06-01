@@ -3,20 +3,15 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "cone.h"
-#include "cylinder.h"
-#include "plane.h"
 #include "ray.h"
 #include "scene.h"
 #include "scene_object.h"
-#include "sphere.h"
 #include "vec3.h"
-#include "julia.h"
 
 const float WIDTH = 20.0;
 const float HEIGHT = 20.0;
 const float EDIST = 40.0;
-const int NUMDIV = 200;
+const int NUMDIV = 500;
 int AA_FACTOR = 2;
 const int MAX_STEPS = 20;
 float XMIN;
@@ -26,18 +21,18 @@ float YMAX;
 
 scene_t scene;
 
-#define NUM_LIGHTS 1
+#define NUM_LIGHTS 2
 vec3_t lights[] = {
-    {20, 0, -3},
-    {20, 200, -3}};
+    {20, 10, -20},
+    {10, 2, -3}};
 
-vec3_t spolight_location = {5, 0, -90};
+vec3_t spolight_location = {-5, -3.6, -60};
 // gets normalized in initialize()
-vec3_t spolight_direction = {-1, -1, 0}; 
-double spotlight_angle = 0.5;
+vec3_t spolight_direction = {-1, -1, -3};
+double spotlight_angle = 0.2;
 
 vec3_t fog_color = {0.0, 0.0, 0.0};
-double fog_intensity = 1000.0;
+double fog_intensity = 210.0;
 
 vec3_t trace(ray_t *ray, int step) {
     vec3_t bg_color = ZERO_VEC;
@@ -62,35 +57,33 @@ vec3_t trace(ray_t *ray, int step) {
 
         if ((shadow_ray.index > -1) && (shadow_ray.distance < length(light_vec))) {
             scene_object_t *shadow_hit = &scene.objects[shadow_ray.index];
-            double shadow_coef = shadow_hit->is_transparent ? shadow_hit->transparent_c : 0.2;
-            color = scale(color, shadow_coef);
+            if (shadow_hit->is_transparent) {
+                double transparent_shadow_coef = 1.5;
+                color = add(color, scale(shadow_hit->color, transparent_shadow_coef *(1 - shadow_hit->transparent_c)));
+            } else {
+                color = scale(color, 0.8);
+            }
         }
     }
 
     if (object->is_transparent) {
         ray_t internal_ray = new_ray(ray->hit, ray->dir);
-        // printf("a\n");
         closest_point(&internal_ray, scene);
-        // printf("a\n");
         ray_t exit_ray = new_ray(internal_ray.hit, ray->dir);
-        // printf("a\n");
         vec3_t behind_color = trace(&exit_ray, step);
-        // printf("a\n");
-        color = lerp(color, behind_color, object->transparent_c);
-        // color = add(color, scale(behind_color, object->transparent_c));
+        vec3_t color1 = lerp(color, behind_color, object->transparent_c);
+        vec3_t color2 = add(color, scale(behind_color, object->transparent_c));
+        color = lerp(color1, color2, 0.3);
     }
 
     if (object->is_refractive && step < MAX_STEPS) {
         vec3_t norm = object->normal(object, ray->hit);
-        //maybe normalise incident
-
         vec3_t refract_direction = refract(normalize(ray->dir), normalize(norm), 1 / object->refractive_index);
         ray_t refract_ray = new_ray(ray->hit, refract_direction);
         closest_point(&refract_ray, scene);
         vec3_t exiting_normal = object->normal(object, refract_ray.hit);
         vec3_t exiting_refract_direction = refract(refract_direction, negate(exiting_normal), object->refractive_index);
         ray_t exiting_refreact_ray = new_ray(refract_ray.hit, exiting_refract_direction);
-
         vec3_t refracted_color = trace(&exiting_refreact_ray, step + 1);
 
         color = lerp(color, refracted_color, object->refract_c);
@@ -112,11 +105,12 @@ vec3_t trace(ray_t *ray, int step) {
         ray_t spotlight_shadow_ray = new_ray(ray->hit, hit_to_spotlight);
         closest_point(&spotlight_shadow_ray, scene);
         if ((spotlight_shadow_ray.index == -1) || (spotlight_shadow_ray.distance > length(hit_to_spotlight))) {
-            // color = add(color, (vec3_t){0.3, 0.3, 0.3});
+            color = add(color, (vec3_t){0.3, 0.3, 0.3});
         }
     }
 
-    double fog_scale = ray->distance / fog_intensity;
+    vec3_t fog_dist = (vec3_t){ray->hit.x * 3.5, ray->hit.y, ray->hit.z};
+    double fog_scale = length(fog_dist) / fog_intensity;
     if (fog_scale > 1.0) {
         fog_scale = 1.0;
     }
@@ -132,7 +126,7 @@ void display() {
     double subcell_x = cell_x / AA_FACTOR;
     double subcell_y = cell_y / AA_FACTOR;
 
-    vec3_t eye = {0.0, 0.0, 0.0};
+    vec3_t eye = {0.0, -5, 0.0};
 
     glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -144,9 +138,6 @@ void display() {
 
     int progress_division = NUMDIV / 10;
     int percentage = 0;
-
-    printf("Caching julia set\n");
-    populate_buffer();
 
     printf("Rendering...\n");
 

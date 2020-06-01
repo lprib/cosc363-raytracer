@@ -59,3 +59,7 @@ vec3_t lerp(vec3_t a, vec3_t b, double t) {
 void print_vec(vec3_t n) {
     printf("%f %f %f\n", n.x, n.y, n.z);
 }
+
+vec3_t byte_color(int r, int g, int b) {
+    return scale((vec3_t){(double)r / 255.0, (double)g / 255.0, (double)b / 255.0}, 0.8);
+}

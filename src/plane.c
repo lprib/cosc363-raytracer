@@ -94,9 +94,9 @@ vec3_t plane_get_color(scene_object_t *this, vec3_t hit) {
         int k = (ix + iz) % 2;
 
         if (k == 0) {
-            return (vec3_t){0, 0, 0};
+            return (vec3_t){0.5, 0.5, 0.5};
         } else {
-            return (vec3_t){1, 1, 1};
+            return (vec3_t){0.7, 0.7, 0.7};
         }
     } else if(d->is_julia) {
         double s = (hit.x - d->a.x) / (d->c.x - d->a.x);

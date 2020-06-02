@@ -14,7 +14,7 @@ static double cx = 0.32;
 static double cy = 0.5;
 
 // escape radius
-static double r = 1.5;
+static double r = 1.3;
 
 // linear map from one range to another
 static double map(double input, double input_start, double input_end,

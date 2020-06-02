@@ -11,7 +11,7 @@
 static const float WIDTH = 20.0;
 static const float HEIGHT = 20.0;
 static const float EDIST = 40.0;
-static const int NUMDIV = 500;
+static const int NUMDIV = 1000;
 static int AA_FACTOR = 2;
 static const int MAX_STEPS = 20;
 
@@ -142,11 +142,10 @@ void display() {
 
     vec3_t eye = {0.0, -5, 0.0};
 
-    glClear(GL_COLOR_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glBegin(GL_QUADS);
 
     // buffer to store subpixel colors, to be averaged by AA
     vec3_t buf[AA_FACTOR * AA_FACTOR];
@@ -159,6 +158,7 @@ void display() {
     for (int i = 0; i < NUMDIV; i++) {
         xp = XMIN + i * cell_x;
 
+        glBegin(GL_QUADS);
         for (int j = 0; j < NUMDIV; j++) {
             yp = YMIN + j * cell_y;
 
@@ -193,12 +193,12 @@ void display() {
             printf("%d%% complete\n", percentage);
             percentage += 10;
         }
+
+        glEnd();
+        glFlush();
     }
 
     printf("100%% complete\n");
-
-    glEnd();
-    glFlush();
 }
 
 void initialize() {
@@ -220,7 +220,7 @@ void initialize() {
 int main(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(500, 500);
+    glutInitWindowSize(800, 800);
     glutInitWindowPosition(20, 20);
     glutCreateWindow("Raytracing");
     glutDisplayFunc(display);
